@@ -1161,10 +1161,6 @@ def _add_data_args(parser):
                                 'Llama2Tokenizer',
                                 'HFPretrainedTokenizer'],
                        help='What type of tokenizer to use.')
-    
-    group.add_argument('--hf_tokenizer_path', type=str, default=None,
-                       help='HuggingFace pretrained tokenizer model.')
-
     group.add_argument('--tokenizer-model', type=str, default=None,
                        help='Sentencepiece tokenizer model.')
     group.add_argument('--reset-position-ids', action='store_true',

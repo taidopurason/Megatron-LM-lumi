@@ -7,7 +7,6 @@ from abc import abstractmethod
 
 from .bert_tokenization import FullTokenizer as FullBertTokenizer
 from .gpt2_tokenization import GPT2Tokenizer
-from transformers import AutoTokenizer
 
 def build_tokenizer(args):
     """Initialize tokenizer."""
@@ -42,8 +41,8 @@ def build_tokenizer(args):
     elif args.tokenizer_type == 'NullTokenizer':
         assert args.vocab_size is not None
         tokenizer = _NullTokenizer(args.vocab_size)
-    elif args.tokenizer_type == "HFPretrainedTokenizer":
-        tokenizer = _HFTokenizer(args.hf_tokenizer_path)
+    elif args.tokenizer_type == "HuggingFaceTokenizer":
+        tokenizer = _HuggingFaceTokenizer(args.tokenizer_model)
     else:
         raise NotImplementedError('{} tokenizer is not '
                                   'implemented.'.format(args.tokenizer_type))
@@ -299,27 +298,49 @@ class _GPT2BPETokenizer(AbstractTokenizer):
     def eod(self):
         return self.eod_id
 
-class _HFTokenizer:
-    def __init__(self, tokenizer_name):
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
-        self.eod_id = self.tokenizer.eos_token_id
-        self.decoder = {value:key for key, value in self.tokenizer.get_vocab().items()}
-    
+
+class _HuggingFaceTokenizer(AbstractTokenizer):
+    def __init__(self, pretrained_model_name_or_path, **kwargs):
+        super().__init__(pretrained_model_name_or_path)
+        try:
+            import transformers
+        except ImportError:
+            raise EnvironmentError(f"The transformers library must be installed to use huggingface_tokenizer_provider")
+
+        self._tokenizer = transformers.AutoTokenizer.from_pretrained(
+            pretrained_model_name_or_path=pretrained_model_name_or_path, **kwargs
+        )
+        self._vocab = self._tokenizer.get_vocab()
+        self._inv_vocab = {token_id: token for token, token_id in self._vocab.items()}
+
     @property
     def vocab_size(self):
-        vocab_size = len(self.tokenizer.get_vocab())
-        return vocab_size
-    def tokenize(self, text):
-        return self.tokenizer.encode(text)
-    def detokenize(self, ids):
-        return self.tokenizer.decode(ids)
+        return len(self._tokenizer)
+
+    @property
+    def vocab(self):
+        """Dictionary from vocab text token to id token."""
+        return self._vocab
+
     @property
     def inv_vocab(self):
-        return self.tokenizer.decoder 
-    
+        """Dictionary from vocab id token to text token."""
+        return self._inv_vocab
+
+    @property
+    def decoder(self):
+        return self._inv_vocab
+
+    def tokenize(self, text):
+        return self._tokenizer(text).input_ids
+
+    def detokenize(self, token_ids):
+        return self._tokenizer.decode(token_ids)
+
     @property
     def eod(self):
-        return self.eod_id 
+        return self._tokenizer.eos_token_id
+
 
 class _SentencePieceTokenizer(AbstractTokenizer):
     """SentencePieceTokenizer-Megatron wrapper"""
