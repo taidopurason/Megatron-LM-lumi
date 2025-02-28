@@ -42,8 +42,8 @@ class RotaryEmbedding(nn.Module):
                 f"original_max_position_embeddings={original_max_position_embeddings}"
             )
 
-            self.inv_freq = self._llama3_rope_scaling(
-                self.inv_freq,
+            inv_freq = self._llama3_rope_scaling(
+                inv_freq,
                 factor=scaling_factor,
                 high_freq_factor=high_freq_factor,
                 low_freq_factor=low_freq_factor,
