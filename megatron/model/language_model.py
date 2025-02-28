@@ -374,8 +374,13 @@ class TransformerLanguageModel(MegatronModule):
             # https://github.com/kingoflolz/mesh-transformer-jax/
             self.rotary_pos_emb = RotaryEmbedding(
                 rotary_dim,
-                args.rope_theta,
-                seq_len_interpolation_factor=args.rotary_seq_len_interpolation_factor
+                seq_len_interpolation_factor=args.rotary_seq_len_interpolation_factor,
+                theta=args.rope_theta,
+                scaling_type=args.rope_scaling_type,
+                scaling_factor=args.rope_scaling_factor,
+                high_freq_factor=args.rope_high_freq_factor,
+                low_freq_factor=args.rope_low_freq_factor,
+                original_max_position_embeddings=args.rope_original_max_position_embeddings,
             )
 
         # Encoder (usually set to True, False if part of an encoder-decoder

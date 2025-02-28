@@ -570,6 +570,12 @@ def _add_network_size_args(parser):
                        choices=['learned_absolute', 'rope'],
                        help='Position embedding type.')
     group.add_argument('--rope-theta', type=float, default=1e4, help='Theta value for rope.')
+    group.add_argument('--rope-scaling-type', type=str, default=None,
+                       help='Rotary embedding initialization type', choices=[None, "default", "llama3"])
+    group.add_argument('--rope-scaling-factor', type=float, default=None, help='Rotary factor')
+    group.add_argument('--rope-low-freq-factor', type=float, default=None, help='Rotary low frequency factor')
+    group.add_argument('--rope-high-freq-factor', type=float, default=None, help='Rotary high frequency factor')
+    group.add_argument('--rope-original-max-position-embeddings', type=int, default=None)
     group.add_argument('--use-rotary-position-embeddings', action='store_true',
                        help='Use rotary positional embeddings or not. '
                        'Deprecated: use --position-embedding-type')

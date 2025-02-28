@@ -61,6 +61,12 @@ class GPTModel(MegatronModule):
         position_embedding_type: Literal['learned_absolute', 'rope'] = 'learned_absolute',
         rotary_percent: float = 1.0,
         seq_len_interpolation_factor: Optional[float] = None,
+        rope_theta: int = 10000,
+        rope_scaling_type: Optional[str] = None,
+        rope_scaling_factor: Optional[float] = None,
+        rope_high_freq_factor: Optional[float] = None,
+        rope_low_freq_factor: Optional[float] = None,
+        rope_original_max_position_embeddings: Optional[int] = None,
     ):
         super(GPTModel, self).__init__(config=config)
 
@@ -94,7 +100,16 @@ class GPTModel(MegatronModule):
             if rotary_percent < 1.0:
                 rotary_dim = int(rotary_dim * rotary_percent)
 
-            self.rotary_pos_emb = RotaryEmbedding(rotary_dim, seq_len_interpolation_factor)
+            self.rotary_pos_emb = RotaryEmbedding(
+                rotary_dim,
+                seq_len_interpolation_factor=seq_len_interpolation_factor,
+                theta=rope_theta,
+                scaling_type=rope_scaling_type,
+                scaling_factor=rope_scaling_factor,
+                high_freq_factor=rope_high_freq_factor,
+                low_freq_factor=rope_low_freq_factor,
+                original_max_position_embeddings=rope_original_max_position_embeddings,
+            )
         else:
             self.rotary_pos_emb = None
 

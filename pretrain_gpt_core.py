@@ -52,6 +52,12 @@ def model_provider(pre_process=True, post_process=True):
         share_embeddings_and_output_weights=not args.untie_embeddings_and_output_weights,
         position_embedding_type=args.position_embedding_type,
         rotary_percent=args.rotary_percent,
+        rope_theta=args.rope_theta,
+        rope_scaling_type=args.rope_scaling_type,
+        rope_scaling_factor=args.rope_scaling_factor,
+        rope_high_freq_factor=args.rope_high_freq_factor,
+        rope_low_freq_factor=args.rope_low_freq_factor,
+        rope_original_max_position_embeddings=args.rope_original_max_position_embeddings,
     )
     return model
 
