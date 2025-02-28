@@ -39,24 +39,31 @@ def load_args_from_checkpoint(args):
 
     # Update Megatron args.
     args.seq_length = 4096
-    args.max_position_embeddings = 4096
+    args.max_position_embeddings = llama_args["max_position_embeddings"]
     args.hidden_size = llama_args["hidden_size"]
     args.num_attention_heads = llama_args["num_attention_heads"]
     args.num_layers = llama_args["num_hidden_layers"]
     args.global_batch_size = 1024
     args.norm_epsilon = llama_args["rms_norm_eps"]
-    args.rope_theta = llama_args["rope_theta"]
+    args.position_embedding_type = "rope"
+    args.rope_theta = llama_args.get("rope_theta", 10000)
+    if "rope_scaling" in llama_args:
+        scaling_args = llama_args["rope_scaling"]
+        args.rope_scaling_type = scaling_args.get("rope_type", None)
+        args.rope_scaling_factor = scaling_args.get("factor", None)
+        args.rope_high_freq_factor = scaling_args.get("high_freq_factor", None)
+        args.rope_low_freq_factor = scaling_args.get("low_freq_factor", None)
+        args.rope_original_max_position_embeddings = scaling_args.get("original_max_position_embeddings", None)
     # args.iteration = 1 # '0', 'release' don't work
     args.add_position_embedding = False
     args.use_rotary_position_embeddings = True
     args.swiglu = True
-    args.tokenizer_type = "GPT2BPETokenizer"
-    # args.tokenizer_type = "Llama2Tokenizer"
+    args.tokenizer_type = "HuggingFaceTokenizer"
     args.bf16 = True
     args.normalization = "RMSNorm"
     args.add_bias_linear = False
     args.apply_query_key_layer_scaling = False
-    args.untie_embeddings_and_output_weights = True
+    args.untie_embeddings_and_output_weights = not llama_args.get("tie_word_embeddings", False)
     args.vocab_size = llama_args["vocab_size"]
     args.padded_vocab_size = llama_args["vocab_size"]
     args.llama = llama_args
@@ -76,7 +83,8 @@ def set_preprocess_state(args, model, hf_model):
 def set_postprocess_state(args, model, hf_model):
     '''Set output layer & norm params.'''
     model.language_model.encoder.final_norm.weight.data.copy_(hf_model.model.norm.weight)
-    model.language_model.output_layer.weight.data.copy_(hf_model.lm_head.weight)
+    if args.untie_embeddings_and_output_weights:
+        model.language_model.output_layer.weight.data.copy_(hf_model.lm_head.weight)
 
 
 def set_attn_state(args, layer, hf_layer):
@@ -135,7 +143,9 @@ def load_checkpoint_to_model(args):
     from transformers import LlamaForCausalLM
 
     # Load Huggingface model.
-    hf_model = LlamaForCausalLM.from_pretrained(args.load)#, device_map="cpu")
+    hf_model = LlamaForCausalLM.from_pretrained(
+        args.load, torch_dtype=args.params_dtype, low_cpu_mem_usage=True, device_map="cpu"
+    )
 
     # Init Megatron model.
     model = model_provider(True, True).to(args.params_dtype)
@@ -271,6 +281,9 @@ def _load_checkpoint(queue, args):
     md.checkpoint_args = margs
     md.consumed_train_samples = 0
     md.consumed_valid_samples = 0
+
+    tokenizer = transformers.AutoTokenizer.from_pretrained(margs.tokenizer_model)
+    md.true_vocab_size = tokenizer._tokenizer.get_vocab_size(with_added_tokens=True)
 
     # Get first pipe stage.
     mpu.set_tensor_model_parallel_rank(0)

@@ -155,14 +155,21 @@ def main():
     parser.add_argument('--no-checking', action='store_false',
                         help='Do not perform checking on the name and ordering of weights',
                         dest='checking')
+    parser.add_argument('--use-tmpdir-for-loading', action='store_true',
+                        help='Symlink the load_dir to a temporary directory',)
+
 
 
 
     known_args, _ = parser.parse_known_args()
-    
-    # symlink the load_dir to a temporary directory if provided specific checkpoint path
-    # and write the iteration number to a file
-    ckpt_iter = re.search(r'iter_(\d+)', [iter_string for iter_string in known_args.load_dir.split('/') if 'iter_' in iter_string][-1])
+
+
+    if known_args.use_tmpdir_for_loading:
+        # symlink the load_dir to a temporary directory if provided specific checkpoint path
+        # and write the iteration number to a file
+        ckpt_iter = re.search(r'iter_(\d+)', [iter_string for iter_string in known_args.load_dir.split('/') if 'iter_' in iter_string][-1])
+    else:
+        ckpt_iter = None
 
     if ckpt_iter:
         try:
