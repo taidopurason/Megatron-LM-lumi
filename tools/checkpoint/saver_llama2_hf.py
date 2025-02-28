@@ -45,12 +45,16 @@ def save_checkpoint(queue: mp.Queue, args):
         torch_dtype = torch.float16
     assert mag_conf.swiglu == True
     assert mag_conf.rotary_percent == 1.0
+
+    extra_kwargs = {}
     if args.tokenizer_dir is not None:
         tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_dir)
         tokenizer.save_pretrained(args.save_dir)
+        extra_kwargs["bos_token_id"] = tokenizer.bos_token_id
+        extra_kwargs["eos_token_id"] = tokenizer.eos_token_id
 
     if hasattr(mag_conf, 'rope_scaling_type') and mag_conf.rope_scaling_type is not None:
-        rope_scaling = {
+        extra_kwargs["rope_scaling"] = {
             "rope_type": mag_conf.rope_scaling_type,
             "factor": mag_conf.rope_scaling_factor,
             "high_freq_factor": mag_conf.rope_high_freq_factor,
@@ -71,7 +75,7 @@ def save_checkpoint(queue: mp.Queue, args):
         attention_bias=mag_conf.add_bias_linear,
         torch_dtype=torch_dtype,
         rope_theta=mag_conf.rope_theta if hasattr(mag_conf, 'rope_theta') else 10000,
-        rope_scaling=rope_scaling,
+        **extra_kwargs
     )
     hf_config.save_pretrained(args.save_dir)
 
